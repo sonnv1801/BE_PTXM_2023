@@ -81,6 +81,13 @@ comboController = {
       // Thêm sản phẩm bổ sung vào combo
       if (additionalProducts && additionalProducts.length > 0) {
         combo.products.push(...additionalProducts);
+
+        // Cập nhật giá mới
+        const newPrice = combo.products.reduce(
+          (totalPrice, product) => totalPrice + product.price,
+          0
+        );
+        combo.newPrice = newPrice;
       }
 
       const savedCombo = await combo.save();
@@ -250,6 +257,38 @@ comboController = {
     } catch (error) {
       console.error("Error reducing combo quantity:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  },
+
+  getDetailProductByID: async (req, res) => {
+    const productId = req.params.id;
+
+    try {
+      const combos = await Combo.find();
+      if (!combos) {
+        return res.status(404).json({ error: "No combos found" });
+      }
+
+      const products = [];
+      combos.forEach((combo) => {
+        const matchingProduct = combo.products.find(
+          (product) => product._id.toString() === productId
+        );
+        if (matchingProduct) {
+          products.push(matchingProduct);
+        }
+      });
+
+      if (products.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "Product not found in any combo" });
+      }
+
+      res.send(products[0]); // Trả về đối tượng sản phẩm trực tiếp
+    } catch (error) {
+      console.error("Error retrieving combo products:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 };

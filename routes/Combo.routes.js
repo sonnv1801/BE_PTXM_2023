@@ -14,4 +14,9 @@ router.get("/combos/:typeCombo/:limit", comboController.getComBoByLink);
 
 router.put("/combo/:id/reduce", comboController.reduceComboQuantity);
 
+router.get(
+  "/combos/products/product/:id",
+  comboController.getDetailProductByID
+);
+
 module.exports = router;
