@@ -53,6 +53,14 @@ const purchaseProductController = {
               totalPrice: productTotalPrice,
               productProfit: productProfit,
               totalProfit: productTotalProfit,
+              supplier: productSupplier.supplier, // Add supplier information
+              type: productSupplier.type, // Add supplier information
+              link: productSupplier.link, // Add supplier information
+              image: productSupplier.image, // Add supplier information
+              name: productSupplier.name, // Add supplier information
+              salePrice: productSupplier.salePrice, // Add supplier information
+              retailPrice: productSupplier.retailPrice, // Add supplier information
+              wholesalePrice: productSupplier.wholesalePrice, // Add supplier information
             };
           })
         ),
@@ -169,6 +177,142 @@ const purchaseProductController = {
       res.status(200).json(orders);
     } catch (err) {
       res.status(500).json(err);
+    }
+  },
+  getProductsByType: async (req, res) => {
+    try {
+      const type = req.params.type;
+      const orders = await Order.find({ "products.type": type }).exec();
+      const products = orders.reduce((acc, order) => {
+        const matchingProducts = order.products.filter(
+          (product) => product.type === type
+        );
+        return acc.concat(matchingProducts);
+      }, []);
+
+      res.json(products);
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // Lấy sản phẩm theo ID
+  // Lấy sản phẩm theo ID
+  getProductById: async (req, res) => {
+    try {
+      const productId = req.params.productId;
+
+      const order = await Order.findOne({ "products._id": productId }).exec();
+
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      const product = order.products.find(
+        (product) => product._id.toString() === productId
+      );
+
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      res.json(product);
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+  purchaseProductQuantity: async (req, res) => {
+    try {
+      const productId = req.params.productId;
+      const quantity = req.body.quantity;
+
+      // Tìm sản phẩm trong cơ sở dữ liệu
+      const order = await Order.findOne({ "products._id": productId });
+      if (!order) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      // Tìm sản phẩm cần mua
+      const product = order.products.find(
+        (p) => p._id.toString() === productId
+      );
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      // Kiểm tra số lượng mua không vượt quá số lượng có sẵn
+      if (quantity > product.quantityDelivered) {
+        return res.status(400).json({ error: "Invalid quantity" });
+      }
+
+      // Kiểm tra nếu quantityPurchased đã đạt đến quantityDelivered
+      if (product.quantityPurchased === product.quantityDelivered) {
+        return res.status(400).json({ error: "Product cannot be purchased" });
+      }
+
+      // Tính số lượng còn lại có thể mua
+      const remainingQuantity =
+        product.quantityDelivered - product.quantityPurchased;
+
+      // Kiểm tra số lượng mua không vượt quá số lượng còn lại có thể mua
+      if (quantity > remainingQuantity) {
+        return res.status(400).json({ error: "Invalid quantity" });
+      }
+
+      // Tăng số lượng khách hàng đã mua
+      product.quantityPurchased += quantity;
+
+      // Cập nhật cơ sở dữ liệu
+      await order.save();
+
+      res.json({ message: "Product purchased successfully" });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+  getAllProductsByOrder: async (req, res) => {
+    try {
+      // Lấy tất cả đơn đặt hàng có `customerId` hợp lệ
+      const orders = await Order.find({
+        customerId: { $exists: true, $ne: null },
+      }).lean();
+
+      // Tạo mảng chứa tất cả sản phẩm
+      let allProducts = [];
+
+      // Lặp qua từng đơn đặt hàng và lấy ra sản phẩm
+      orders.forEach((order) => {
+        const products = order.products;
+        allProducts = allProducts.concat(products);
+      });
+
+      res.json(allProducts);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
+
+  getAllProductToOrder: async (req, res) => {
+    try {
+      // Tìm tất cả các đơn hàng
+      const orders = await Order.find();
+
+      let allProducts = [];
+
+      // Lặp qua các đơn hàng và thu thập danh sách sản phẩm
+      orders.forEach((order) => {
+        allProducts = allProducts.concat(order.products);
+      });
+
+      // Trả về danh sách sản phẩm từ tất cả các đơn hàng
+      res.json(allProducts);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Đã xảy ra lỗi server" });
     }
   },
 };

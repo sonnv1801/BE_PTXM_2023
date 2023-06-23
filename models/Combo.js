@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema({
   name: String,
+  image: String,
   productCode: String,
   price: Number,
   oldPrice: Number,
@@ -12,6 +13,7 @@ const productSchema = new mongoose.Schema({
 
 const comboSchema = new mongoose.Schema({
   image: String,
+  quantity: Number,
   title: String,
   type: String,
   link: String,

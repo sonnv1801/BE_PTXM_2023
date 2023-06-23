@@ -19,6 +19,7 @@ const productSupplierController = {
         quantity: req.body.quantity,
         supplier: req.body.supplier,
         link: req.body.link,
+        type: req.body.type,
       });
       await newProduct.save();
       res.status(200).json(newProduct);
@@ -73,6 +74,7 @@ const productSupplierController = {
             quantity: req.body.quantity,
             supplier: req.body.supplier,
             link: req.body.link,
+            type: req.body.type,
           },
         });
         res.status(200).json("Update product successfully");

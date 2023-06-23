@@ -9,6 +9,10 @@ const productSupplierSchema = new mongoose.Schema({
     type: String,
     require: true,
   },
+  type: {
+    type: String,
+    require: true,
+  },
   productCode: {
     type: String,
     require: true,

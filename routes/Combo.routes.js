@@ -4,12 +4,14 @@ const router = require("express").Router();
 const upload = require("../utils/multer");
 router.get("/", comboController.getAllCombo);
 router.get("/:id", comboController.getComBoById);
-router.post("/", upload.single("image"), comboController.createCombo);
+router.post("/", comboController.createCombo);
 router.put("/:id", comboController.updateComboByID);
 router.post("/addcombo/:comboId", comboController.addAdditionalProductsToCombo);
 router.put("/:comboId/product/:productId", comboController.UpdateToCombo);
-router.delete("/:comboId/product/:productId", comboController.UpdateToCombo);
+router.put("/combos/:comboId", comboController.UpdateToCombo);
 router.delete("/:id", comboController.DeleteComboByID);
 router.get("/combos/:typeCombo/:limit", comboController.getComBoByLink);
+
+router.put("/combo/:id/reduce", comboController.reduceComboQuantity);
 
 module.exports = router;

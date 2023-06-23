@@ -36,26 +36,10 @@ comboController = {
       return res.status(500).json(err);
     }
   },
+
   createCombo: async (req, res) => {
     try {
-      const { image, link, name, typeCombo, products } = req.body;
-      const combo = new Combo({
-        image: image,
-        link: link,
-        name,
-        typeCombo,
-        products,
-      });
-      const savedCombo = await combo.save();
-      res.status(201).json(savedCombo);
-    } catch (error) {
-      console.log(error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  },
-  createCombo: async (req, res) => {
-    try {
-      const { image, link, title, type, products, status } = req.body;
+      const { image, link, title, type, products, status, quantity } = req.body;
       let newPrice = 0;
 
       for (const product of products) {
@@ -68,6 +52,7 @@ comboController = {
         title,
         type,
         products,
+        quantity,
         newPrice,
         status: status, // Thay "Your Combo Status" bằng trạng thái thích hợp của combo
       });
@@ -108,44 +93,69 @@ comboController = {
 
   UpdateToCombo: async (req, res) => {
     try {
-      const { comboId, productId } = req.params;
-      const {
-        name,
-        productCode,
-        price,
-        oldPrice,
-        status,
-        quantity,
-        remainingQuantity,
-      } = req.body;
+      const { comboId } = req.params;
+      const { image, title, type, link, status, quantity, products } = req.body;
 
+      // Tìm combo theo comboId
       const combo = await Combo.findById(comboId);
+
       if (!combo) {
-        return res.status(404).json({ error: "Combo not found" });
+        return res.status(404).json({ message: "Combo không tồn tại." });
       }
 
-      const productIndex = combo.products.findIndex(
-        (product) => product._id.toString() === productId
-      );
-      if (productIndex === -1) {
-        return res.status(404).json({ error: "Product not found in combo" });
+      // Cập nhật thông tin combo
+      combo.image = image;
+      combo.title = title;
+      combo.type = type;
+      combo.link = link;
+      combo.status = status;
+      combo.quantity = quantity;
+
+      let totalNewPrice = 0;
+
+      // Cập nhật thông tin các sản phẩm trong combo và tính toán newPrice
+      for (let i = 0; i < products.length; i++) {
+        const {
+          image,
+          name,
+          productCode,
+          price,
+          oldPrice,
+          status,
+          quantity,
+          remainingQuantity,
+        } = products[i];
+        const product = combo.products[i];
+
+        product.image = image;
+        product.name = name;
+        product.productCode = productCode;
+        product.price = price;
+        product.oldPrice = oldPrice;
+        product.status = status;
+        product.quantity = quantity;
+        product.remainingQuantity = remainingQuantity;
+
+        // Tính toán newPrice của sản phẩm
+        product.newPrice = price * (quantity - remainingQuantity);
+
+        // Tổng hợp tổng giá trị newPrice của tất cả sản phẩm
+        totalNewPrice += product.newPrice;
       }
 
-      const updatedProduct = combo.products[productIndex];
-      updatedProduct.name = name;
-      updatedProduct.productCode = productCode;
-      updatedProduct.price = price;
-      updatedProduct.oldPrice = oldPrice;
-      updatedProduct.status = status;
-      updatedProduct.quantity = quantity;
-      updatedProduct.remainingQuantity = remainingQuantity;
+      // Lưu các thay đổi vào cơ sở dữ liệu
+      await combo.save();
 
-      const savedCombo = await combo.save();
+      // Cập nhật tổng giá trị newPrice của combo
+      combo.newPrice = totalNewPrice;
 
-      res.json(savedCombo);
-    } catch (error) {
-      console.log(error);
-      res.status(500).json({ error: "Internal server error" });
+      res.json(combo);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        message:
+          "Đã xảy ra lỗi khi cập nhật thông tin combo và các sản phẩm trong combo.",
+      });
     }
   },
 
@@ -199,6 +209,47 @@ comboController = {
       }
     } catch (err) {
       res.status(500).json(err);
+    }
+  },
+
+  reduceComboQuantity: async (req, res) => {
+    try {
+      const comboId = req.params.id; // Combo ID from the request parameters
+      const { quantityCombo, products } = req.body; // Quantity of combo and products
+
+      // Find the combo by ID
+      const combo = await Combo.findById(comboId);
+      if (!combo) {
+        return res.status(404).json({ message: "Combo not found" });
+      }
+
+      // Check if the requested quantityCombo is valid
+      if (quantityCombo > combo.quantity) {
+        return res.status(400).json({ message: "Invalid quantityCombo" });
+      }
+
+      // Reduce the combo quantity
+      combo.quantity -= quantityCombo;
+
+      // Reduce the quantity of each product within the combo and update remainingQuantity
+      products.forEach((product) => {
+        const { productId, quantity } = product;
+        const foundProduct = combo.products.find(
+          (p) => p._id.toString() === productId
+        );
+        if (foundProduct) {
+          foundProduct.quantity -= quantity;
+          foundProduct.remainingQuantity = foundProduct.quantity;
+        }
+      });
+
+      // Save the updated combo
+      await combo.save();
+
+      res.status(200).json({ message: "Combo quantity reduced successfully" });
+    } catch (error) {
+      console.error("Error reducing combo quantity:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   },
 };
