@@ -7,11 +7,6 @@ const TypeComboSchema = new mongoose.Schema({
     maxlength: 20,
     unique: true,
   },
-  link: {
-    type: String,
-    require: true,
-    unique: true,
-  },
   created_at: { type: Date, default: Date.now },
   update_at: { type: Date, default: Date.now },
 });
