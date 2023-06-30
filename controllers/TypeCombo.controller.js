@@ -13,7 +13,6 @@ const typeComboController = {
     try {
       const newType = await new TypeCombo({
         name: req.body.name,
-        link: req.body.link,
       });
       const type = await newType.save();
       res.status(200).json(type);
