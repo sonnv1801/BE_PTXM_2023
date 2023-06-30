@@ -12,6 +12,8 @@ router.put(
   productSupplierController.updateProductSupplier
 );
 
+router.post("/addmanyproduct", productSupplierController.createManyProduct);
+
 router.delete("/:id", productSupplierController.deleteProductSupplier);
 router.get("/:link/:limit", productSupplierController.getProductByLink);
 router.get("/:id", productSupplierController.getProductById);

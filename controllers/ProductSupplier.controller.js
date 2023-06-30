@@ -10,11 +10,12 @@ const productSupplierController = {
       });
       let newProduct = new ProductSupplier({
         image: result.secure_url,
-        agentCode: req.body.agentCode,
+        // agentCode: req.body.agentCode,
         productCode: req.body.productCode,
         salePrice: req.body.salePrice,
         retailPrice: req.body.retailPrice,
         wholesalePrice: req.body.wholesalePrice,
+        wholesalePriceQuick: req.body.wholesalePriceQuick,
         name: req.body.name,
         quantity: req.body.quantity,
         supplier: req.body.supplier,
@@ -25,6 +26,22 @@ const productSupplierController = {
       res.status(200).json(newProduct);
     } catch (err) {
       res.status(500).json(err);
+    }
+  },
+
+  createManyProduct: async (req, res) => {
+    try {
+      const newData = req.body;
+
+      // Insert the data into the database using the ProductSupplier model
+      const result = await ProductSupplier.insertMany(newData);
+
+      res.status(200).json(result);
+    } catch (error) {
+      console.error(error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to add data to the database" });
     }
   },
 
@@ -57,19 +74,26 @@ const productSupplierController = {
 
   updateProductSupplier: async (req, res) => {
     try {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "QUANLYPHUTUNG",
-      });
+      let imageUrl = null;
+
+      if (req.file) {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "QUANLYPHUTUNG",
+        });
+        imageUrl = result.secure_url;
+      }
+
       const results = await ProductSupplier.findById(req.params.id);
       if (results.productId === req.body.productId) {
         await results.updateOne({
           $set: {
-            image: result.secure_url,
-            agentCode: req.body.agentCode,
+            image: imageUrl || results.image, // Sử dụng đường dẫn ảnh mới hoặc giữ nguyên đường dẫn ảnh ban đầu
+            // Các trường thông tin khác
             productCode: req.body.productCode,
             salePrice: req.body.salePrice,
             retailPrice: req.body.retailPrice,
             wholesalePrice: req.body.wholesalePrice,
+            wholesalePriceQuick: req.body.wholesalePriceQuick,
             name: req.body.name,
             quantity: req.body.quantity,
             supplier: req.body.supplier,
@@ -79,7 +103,7 @@ const productSupplierController = {
         });
         res.status(200).json("Update product successfully");
       } else {
-        res.status(500).json("Can't update prduct");
+        res.status(500).json("Can't update product");
       }
     } catch (err) {
       res.status(500).json(err);

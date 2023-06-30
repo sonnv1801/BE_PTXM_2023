@@ -5,10 +5,10 @@ const productSupplierSchema = new mongoose.Schema({
     type: String,
     // require: true,
   },
-  agentCode: {
-    type: String,
-    require: true,
-  },
+  // agentCode: {
+  //   type: String,
+  //   require: true,
+  // },
   type: {
     type: String,
     require: true,
@@ -26,6 +26,10 @@ const productSupplierSchema = new mongoose.Schema({
     require: true,
   },
   wholesalePrice: {
+    type: Number,
+    require: true,
+  },
+  wholesalePriceQuick: {
     type: Number,
     require: true,
   },

@@ -5,7 +5,7 @@ const supplierController = {
     try {
       const newSpplier = await new Supplier({
         name: req.body.name,
-        link: req.body.link,
+        // link: req.body.link,
       });
       const supplier = await newSpplier.save();
       res.status(200).json(supplier);

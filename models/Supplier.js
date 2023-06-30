@@ -5,10 +5,10 @@ const supplierSchema = new mongoose.Schema({
     type: String,
     require: true,
   },
-  link: {
-    type: String,
-    require: true,
-  },
+  // link: {
+  //   type: String,
+  //   require: true,
+  // },
   created_at: { type: Date, default: Date.now },
   update_at: { type: Date, default: Date.now },
 });
