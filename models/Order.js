@@ -22,15 +22,19 @@ const orderSchema = new mongoose.Schema({
       },
       salePrice: {
         type: Number,
-        require: true,
+        required: true,
       },
       retailPrice: {
         type: Number,
-        require: true,
+        required: true,
       },
       wholesalePrice: {
         type: Number,
-        require: true,
+        required: true,
+      },
+      wholesalePriceQuick: {
+        type: Number,
+        required: true,
       },
       type: {
         type: String,
@@ -76,6 +80,10 @@ const orderSchema = new mongoose.Schema({
       quantityPurchased: {
         type: Number,
         default: 0,
+      },
+      fastDelivery: {
+        type: Boolean,
+        default: false,
       },
     },
   ],

@@ -2,6 +2,7 @@ const ProductSupplier = require("../models/ProductSupplier");
 const Order = require("../models/Order");
 const PurchaseHistory = require("../models/PurchaseHistory");
 const Customer = require("../models/User");
+const cloudinary = require("../utils/cloudinary");
 
 const purchaseProductController = {
   purchaseProduct: async (req, res) => {
@@ -23,7 +24,7 @@ const purchaseProductController = {
         customerId: customerId,
         products: await Promise.all(
           products.map(async (product) => {
-            const { productCode, quantity } = product;
+            const { productCode, quantity, purchaseType } = product;
 
             // Lấy thông tin sản phẩm từ nhà cung cấp
             const productSupplier = await ProductSupplier.findOne({
@@ -36,9 +37,12 @@ const purchaseProductController = {
               );
             }
 
-            const productPrice = productSupplier.retailPrice; // Sử dụng giá bán lẻ
-            const productProfit = productPrice - productSupplier.wholesalePrice;
-            const productTotalPrice = quantity * productPrice;
+            const productPrice =
+              purchaseType === "quick"
+                ? productSupplier.wholesalePriceQuick
+                : productSupplier.wholesalePrice;
+            const productProfit = productSupplier.retailPrice - productPrice;
+            const productTotalPrice = quantity * productSupplier.retailPrice;
             const productTotalProfit = quantity * productProfit;
 
             totalOrderPricePreview += productTotalPrice;
@@ -46,21 +50,23 @@ const purchaseProductController = {
 
             return {
               productCode: productCode,
-              quantityOrdered: quantity, // Use the respective quantity for each product
+              quantityOrdered: quantity,
               quantityDelivered: 0,
               deliveryStatus: "pending",
               productPrice: productPrice,
               totalPrice: productTotalPrice,
               productProfit: productProfit,
               totalProfit: productTotalProfit,
-              supplier: productSupplier.supplier, // Add supplier information
-              type: productSupplier.type, // Add supplier information
-              link: productSupplier.link, // Add supplier information
-              image: productSupplier.image, // Add supplier information
-              name: productSupplier.name, // Add supplier information
-              salePrice: productSupplier.salePrice, // Add supplier information
-              retailPrice: productSupplier.retailPrice, // Add supplier information
-              wholesalePrice: productSupplier.wholesalePrice, // Add supplier information
+              supplier: productSupplier.supplier,
+              type: productSupplier.type,
+              link: productSupplier.link,
+              image: productSupplier.image,
+              name: productSupplier.name,
+              salePrice: productSupplier.salePrice,
+              retailPrice: productSupplier.retailPrice,
+              wholesalePrice: productSupplier.wholesalePrice,
+              wholesalePriceQuick: productSupplier.wholesalePriceQuick,
+              fastDelivery: purchaseType === "quick",
             };
           })
         ),
@@ -119,7 +125,7 @@ const purchaseProductController = {
           remainingQuantity -= quantityToDeliver;
 
           // Tính toán tổng giá tiền và tổng giá lời cho sản phẩm
-          const productPrice = productSupplier.retailPrice; // Sử dụng giá bán lẻ
+          const productPrice = productSupplier.retailPrice;
           const productProfit = productPrice - productSupplier.wholesalePrice;
           const productTotalPrice = quantityToDeliver * productPrice;
           const productTotalProfit = quantityToDeliver * productProfit;
@@ -135,13 +141,6 @@ const purchaseProductController = {
       order.totalPrice = totalOrderPrice;
       order.totalProfit = totalOrderProfit;
       await order.save();
-
-      // Cập nhật thông tin người mua hàng
-      const customer = await Customer.findById(customerId);
-      if (customer) {
-        customer.totalPurchases += order.totalPrice;
-        customer.save();
-      }
 
       res.json({
         message: "Đơn đặt hàng đã được xử lý.",
@@ -313,6 +312,96 @@ const purchaseProductController = {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Đã xảy ra lỗi server" });
+    }
+  },
+  deleteProductToOrder: async (req, res) => {
+    try {
+      const productId = req.params.productId; // Lấy productId từ request parameters
+
+      // Tìm và cập nhật các đơn hàng có chứa sản phẩm cần xóa
+      const updateResult = await Order.updateMany(
+        { "products._id": productId },
+        { $pull: { products: { _id: productId } } }
+      );
+
+      if (updateResult.nModified === 0) {
+        return res
+          .status(404)
+          .json({ error: "Không tìm thấy sản phẩm trong hệ thống đơn hàng." });
+      }
+
+      // Xóa các đơn hàng không còn sản phẩm
+      await Order.deleteMany({ products: { $size: 0 } });
+
+      return res
+        .status(200)
+        .json({ message: "Đã xóa sản phẩm từ toàn bộ hệ thống đơn hàng." });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Đã xảy ra lỗi server." });
+    }
+  },
+  getAllProductToOrderById: async (req, res) => {
+    try {
+      const productId = req.params.productId; // Lấy productId từ request parameters
+
+      // Tìm sản phẩm trong toàn bộ hệ thống đơn hàng
+      const order = await Order.findOne({ "products._id": productId });
+
+      if (!order) {
+        return res
+          .status(404)
+          .json({ error: "Không tìm thấy sản phẩm trong hệ thống đơn hàng." });
+      }
+
+      const product = order.products.find(
+        (prod) => prod._id.toString() === productId
+      );
+
+      if (!product) {
+        return res
+          .status(404)
+          .json({ error: "Không tìm thấy sản phẩm trong hệ thống đơn hàng." });
+      }
+
+      return res.status(200).json(product);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Đã xảy ra lỗi server." });
+    }
+  },
+  updateProductToOrderById: async (req, res) => {
+    try {
+      const productId = req.params.productId; // Lấy productId từ request parameters
+      const updatedProduct = req.body; // Lấy thông tin sản phẩm từ request body
+
+      // Kiểm tra nếu có tải lên hình ảnh mới
+      if (req.file) {
+        // Lấy URL của hình ảnh từ Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "QUANLYPHUTUNG",
+        });
+        updatedProduct.image = result.secure_url;
+      }
+
+      // Tìm và cập nhật thông tin sản phẩm
+      const updateResult = await Order.updateOne(
+        { "products._id": productId },
+        { $set: { "products.$": updatedProduct } }
+      );
+
+      if (updateResult.nModified === 0) {
+        return res
+          .status(404)
+          .json({ error: "Không tìm thấy sản phẩm trong hệ thống đơn hàng." });
+      }
+
+      return res
+        .status(200)
+        .json({ message: "Đã cập nhật thông tin sản phẩm." });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Đã xảy ra lỗi server." });
     }
   },
 };
