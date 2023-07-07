@@ -39,22 +39,44 @@ comboController = {
 
   createCombo: async (req, res) => {
     try {
-      const { image, link, title, type, products, status, quantity } = req.body;
-      let newPrice = 0;
+      const { link, title, type, status, quantity, products } = req.body;
 
+      // Kiểm tra xem có tệp tin được gửi lên không
+      if (!req.file) {
+        return res.status(400).json({ error: "Không có tệp tin gửi lên" });
+      }
+
+      const file = req.file;
+
+      // Tải ảnh combo lên Cloudinary
+      const comboImage = await cloudinary.uploader.upload(file.path, {
+        folder: "QUANLYPHUTUNG",
+      });
+
+      const productImages = [];
+      let newPrice = 0; // Initialize newPrice variable
+
+      // Tải ảnh của từng sản phẩm trong combo lên Cloudinary
       for (const product of products) {
-        newPrice += product.price;
+        const productImage = await cloudinary.uploader.upload(product.images, {
+          folder: "QUANLYPHUTUNG",
+        });
+        productImages.push({
+          ...product,
+          images: productImage.secure_url,
+        });
+        newPrice += parseFloat(product.price) || 0;
       }
 
       const combo = new Combo({
-        image: image,
-        link: link,
+        image: comboImage.secure_url,
+        link,
         title,
         type,
-        products,
+        products: productImages,
         quantity,
+        status,
         newPrice,
-        status: status, // Thay "Your Combo Status" bằng trạng thái thích hợp của combo
       });
 
       const savedCombo = await combo.save();
@@ -62,46 +84,98 @@ comboController = {
       res.status(201).json(savedCombo);
     } catch (error) {
       console.log(error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
     }
   },
 
   addAdditionalProductsToCombo: async (req, res) => {
     try {
-      const { additionalProducts } = req.body;
-      const { comboId } = req.params;
+      // Tải lên hình ảnh lên Cloudinary
+      const image = await cloudinary.uploader.upload(req.file.path, {
+        folder: "QUANLYPHUTUNG",
+      });
 
       // Tìm combo dựa trên comboId
-      const combo = await Combo.findById(comboId);
+      const combo = await Combo.findById(req.params.comboId);
 
       if (!combo) {
         return res.status(404).json({ error: "Combo not found" });
       }
 
-      // Thêm sản phẩm bổ sung vào combo
-      if (additionalProducts && additionalProducts.length > 0) {
-        combo.products.push(...additionalProducts);
+      // Tạo một sản phẩm mới với giá là giá của sản phẩm mới
+      const newProduct = {
+        name: req.body.name,
+        images: image.secure_url,
+        productCode: req.body.productCode,
+        price: req.body.price,
+        oldPrice: req.body.oldPrice,
+        status: req.body.status,
+        quantity: req.body.quantity,
+        remainingQuantity: req.body.remainingQuantity,
+      };
 
-        // Cập nhật giá mới
-        const newPrice = combo.products.reduce(
-          (totalPrice, product) => totalPrice + product.price,
-          0
-        );
-        combo.newPrice = newPrice;
+      // Thêm sản phẩm mới vào combo
+      combo.products.push(newProduct);
+
+      // Tính toán giá mới của combo dựa trên danh sách sản phẩm
+      let newPrice = 0;
+      combo.products.forEach((product) => {
+        newPrice += product.price;
+      });
+      combo.newPrice = newPrice;
+
+      // Lưu combo đã được cập nhật
+      const updatedCombo = await combo.save();
+
+      res.json(updatedCombo);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+
+  deleteProductFromCombo: async (req, res) => {
+    try {
+      const comboId = req.params.comboId; // ID của combo
+      const productId = req.params.productId; // ID của sản phẩm
+
+      // Kiểm tra xem combo có tồn tại không
+      const combo = await Combo.findById(comboId);
+      if (!combo) {
+        return res.status(404).json({ error: "Combo not found" });
       }
 
-      const savedCombo = await combo.save();
-      res.status(201).json(savedCombo);
+      // Tìm sản phẩm trong combo và xóa nó
+      const updatedProducts = combo.products.filter(
+        (product) => product._id.toString() !== productId
+      );
+      combo.products = updatedProducts;
+
+      // Tính lại newPrice của combo
+      let newPrice = 0;
+      updatedProducts.forEach((product) => {
+        newPrice += product.price;
+      });
+      combo.newPrice = newPrice;
+
+      // Lưu combo đã cập nhật vào cơ sở dữ liệu
+      await combo.save();
+
+      return res
+        .status(200)
+        .json({ message: "Product removed from combo successfully" });
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error(error);
+      return res
+        .status(500)
+        .json({ error: "Failed to remove product from combo" });
     }
   },
 
   UpdateToCombo: async (req, res) => {
     try {
       const { comboId } = req.params;
-      const { image, title, type, link, status, quantity, products } = req.body;
+      const { title, type, link, status, quantity, products } = req.body;
 
       // Tìm combo theo comboId
       const combo = await Combo.findById(comboId);
@@ -110,51 +184,74 @@ comboController = {
         return res.status(404).json({ message: "Combo không tồn tại." });
       }
 
-      // Cập nhật thông tin combo
-      combo.image = image;
-      combo.title = title;
-      combo.type = type;
-      combo.link = link;
-      combo.status = status;
-      combo.quantity = quantity;
+      // Kiểm tra nếu có tệp tin combo mới được gửi lên
+      if (req.file) {
+        // Tải ảnh combo lên Cloudinary
+        const comboImage = await cloudinary.uploader.upload(req.file.path, {
+          folder: "QUANLYPHUTUNG",
+        });
 
-      let totalNewPrice = 0;
-
-      // Cập nhật thông tin các sản phẩm trong combo và tính toán newPrice
-      for (let i = 0; i < products.length; i++) {
-        const {
-          image,
-          name,
-          productCode,
-          price,
-          oldPrice,
-          status,
-          quantity,
-          remainingQuantity,
-        } = products[i];
-        const product = combo.products[i];
-
-        product.image = image;
-        product.name = name;
-        product.productCode = productCode;
-        product.price = price;
-        product.oldPrice = oldPrice;
-        product.status = status;
-        product.quantity = quantity;
-        product.remainingQuantity = remainingQuantity;
-
-        // Tính toán newPrice của sản phẩm
-        product.newPrice = price * (quantity - remainingQuantity);
-
-        // Tổng hợp tổng giá trị newPrice của tất cả sản phẩm
-        totalNewPrice += product.newPrice;
+        // Cập nhật ảnh combo
+        combo.image = comboImage.secure_url;
       }
 
-      // Lưu các thay đổi vào cơ sở dữ liệu
-      await combo.save();
+      // Cập nhật thông tin combo nếu được cung cấp
+      if (title) combo.title = title;
+      if (type) combo.type = type;
+      if (link) combo.link = link;
+      if (status) combo.status = status;
+      if (quantity) combo.quantity = quantity;
 
-      // Cập nhật tổng giá trị newPrice của combo
-      combo.newPrice = totalNewPrice;
+      if (Array.isArray(products)) {
+        for (let i = 0; i < products.length; i++) {
+          const {
+            name,
+            images: productImage,
+            productCode,
+            price,
+            oldPrice,
+            status,
+            quantity,
+            remainingQuantity,
+          } = products[i];
+          const product = combo.products[i];
+
+          // Kiểm tra nếu có ảnh sản phẩm mới được gửi lên
+          if (productImage && productImage.startsWith("data:image")) {
+            // Tải ảnh sản phẩm lên Cloudinary
+            const uploadedProductImage = await cloudinary.uploader.upload(
+              productImage,
+              {
+                folder: "QUANLYPHUTUNG",
+              }
+            );
+
+            // Cập nhật ảnh sản phẩm
+            product.images = uploadedProductImage.secure_url;
+          }
+
+          // Cập nhật thông tin sản phẩm
+          if (name) product.name = name;
+          if (productCode) product.productCode = productCode;
+          if (price) {
+            product.price = price;
+          }
+          if (oldPrice) product.oldPrice = oldPrice;
+          if (status) product.status = status;
+          if (quantity) product.quantity = quantity;
+          if (remainingQuantity) product.remainingQuantity = remainingQuantity;
+        }
+
+        // Tính toán và cập nhật giá mới cho combo
+        let newPrice = 0;
+        for (let i = 0; i < combo.products.length; i++) {
+          const product = combo.products[i];
+          newPrice += product.price;
+        }
+        combo.newPrice = newPrice;
+      }
+
+      await combo.save();
 
       res.json(combo);
     } catch (err) {
@@ -239,7 +336,7 @@ comboController = {
       combo.quantity -= quantityCombo;
 
       // Reduce the quantity of each product within the combo and update remainingQuantity
-      products.forEach((product) => {
+      products?.forEach((product) => {
         const { productId, quantity } = product;
         const foundProduct = combo.products.find(
           (p) => p._id.toString() === productId
@@ -270,7 +367,7 @@ comboController = {
       }
 
       const products = [];
-      combos.forEach((combo) => {
+      combos?.forEach((combo) => {
         const matchingProduct = combo.products.find(
           (product) => product._id.toString() === productId
         );

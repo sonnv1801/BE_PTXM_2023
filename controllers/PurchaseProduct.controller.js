@@ -283,7 +283,7 @@ const purchaseProductController = {
       let allProducts = [];
 
       // Lặp qua từng đơn đặt hàng và lấy ra sản phẩm
-      orders.forEach((order) => {
+      orders?.forEach((order) => {
         const products = order.products;
         allProducts = allProducts.concat(products);
       });
@@ -303,7 +303,7 @@ const purchaseProductController = {
       let allProducts = [];
 
       // Lặp qua các đơn hàng và thu thập danh sách sản phẩm
-      orders.forEach((order) => {
+      orders?.forEach((order) => {
         allProducts = allProducts.concat(order.products);
       });
 
