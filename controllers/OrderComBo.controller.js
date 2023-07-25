@@ -1,4 +1,4 @@
-const { OrderCombo } = require("../models/OrderComBo");
+const { OrderCombo } = require('../models/OrderComBo');
 
 const orderComboController = {
   createCombo: async (req, res) => {
@@ -15,7 +15,7 @@ const orderComboController = {
       res.status(201).json(savedOrder);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Failed to create order" });
+      res.status(500).json({ error: 'Failed to create order' });
     }
   },
 
@@ -26,8 +26,8 @@ const orderComboController = {
       const orders = await OrderCombo.find({ customerId });
       res.json(orders);
     } catch (error) {
-      console.error("Error fetching orders:", error);
-      res.status(500).json({ message: "Failed to fetch orders" });
+      console.error('Error fetching orders:', error);
+      res.status(500).json({ message: 'Failed to fetch orders' });
     }
   },
   getAllOrder: async (req, res) => {
@@ -36,6 +36,28 @@ const orderComboController = {
       res.status(200).json(products);
     } catch (err) {
       res.status(500).json(err);
+    }
+  },
+
+  getHistoryOrder: async (req, res) => {
+    const customerId = req.params.customerId;
+    try {
+      // Tìm các đơn hàng của khách hàng theo customerId, sắp xếp giảm dần theo ngày đặt hàng
+      const orders = await OrderCombo.find({ customerId: customerId })
+        .sort({ _id: -1 })
+        .limit(1);
+
+      if (orders.length === 0) {
+        return res
+          .status(404)
+          .json({ message: 'Không tìm thấy đơn hàng cho khách hàng này.' });
+      }
+
+      res.status(200).json(orders);
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: 'Đã xảy ra lỗi khi truy vấn cơ sở dữ liệu.' });
     }
   },
 };
