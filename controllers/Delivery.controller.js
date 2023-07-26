@@ -1,7 +1,7 @@
-const ProductSupplier = require("../models/ProductSupplier");
-const Order = require("../models/Order");
-const PurchaseHistory = require("../models/PurchaseHistory");
-const Customer = require("../models/User");
+const ProductSupplier = require('../models/ProductSupplier');
+const Order = require('../models/Order');
+const PurchaseHistory = require('../models/PurchaseHistory');
+const Customer = require('../models/User');
 const deliveryController = {
   deliveryProductMissing: async (req, res) => {
     try {
@@ -82,7 +82,7 @@ const deliveryController = {
       // Cập nhật số lượng đã giao và trạng thái giao hàng trong đơn đặt hàng
       orderProduct.quantityDelivered += quantityToDeliver;
       if (orderProduct.quantityDelivered >= orderProduct.quantityOrdered) {
-        orderProduct.deliveryStatus = "completed";
+        orderProduct.deliveryStatus = 'completed';
       }
 
       // Cập nhật thông tin tổng số lượng, tổng giá trị và tổng lợi nhuận trong đơn đặt hàng
@@ -95,7 +95,7 @@ const deliveryController = {
 
       await order.save();
 
-      res.json({ message: "Giao hàng thành công." });
+      res.json({ message: 'Giao hàng thành công.' });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -109,13 +109,31 @@ const deliveryController = {
       });
 
       if (!histories) {
-        return res.status(404).json({ error: "Không tìm thấy" });
+        return res.status(404).json({ error: 'Không tìm thấy' });
       } else {
         return res.json(histories);
       }
     } catch (error) {
-      console.error("Lỗi truy vấn MongoDB:", error);
-      return res.status(500).json({ error: "Lỗi truy vấn dữ liệu" });
+      console.error('Lỗi truy vấn MongoDB:', error);
+      return res.status(500).json({ error: 'Lỗi truy vấn dữ liệu' });
+    }
+  },
+  deleteOrderById: async (req, res) => {
+    try {
+      const deletedOrder = await Order.findByIdAndDelete(req.params.id);
+
+      if (!deletedOrder) {
+        return res
+          .status(404)
+          .json({ message: 'Không Tìm Thấy Order Theo ID Này' });
+      }
+
+      return res.status(200).json({ message: 'Xóa Order Thành Công!' });
+    } catch (error) {
+      return res.status(500).json({
+        message: 'Xóa Order Không Thành Công!',
+        error: error.message,
+      });
     }
   },
 };

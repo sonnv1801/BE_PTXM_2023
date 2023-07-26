@@ -60,6 +60,43 @@ const orderComboController = {
         .json({ message: 'Đã xảy ra lỗi khi truy vấn cơ sở dữ liệu.' });
     }
   },
+  deleteOrderComboById: async (req, res) => {
+    try {
+      const deletedOrderCombo = await OrderCombo.findByIdAndDelete(
+        req.params.id
+      );
+
+      if (!deletedOrderCombo) {
+        return res
+          .status(404)
+          .json({ message: 'Không Tìm Thấy Order Theo ID Này' });
+      }
+
+      return res.status(200).json({ message: 'Xóa Order Thành Công!' });
+    } catch (error) {
+      return res.status(500).json({
+        message: 'Xóa Order Không Thành Công!',
+        error: error.message,
+      });
+    }
+  },
+  getInfoCustomerById: async (req, res) => {
+    try {
+      const order = await OrderCombo.findById(req.params.id);
+
+      if (!order) {
+        return res
+          .status(404)
+          .json({ error: 'Không Tìm Thấy Thông Tin Theo Id ' });
+      }
+
+      // Return the order details
+      return res.status(200).json(order);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Server error.' });
+    }
+  },
 };
 
 module.exports = orderComboController;
