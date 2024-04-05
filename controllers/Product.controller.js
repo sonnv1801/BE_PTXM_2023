@@ -1,15 +1,40 @@
 const Product = require("../models/Product");
 const cloudinary = require("../utils/cloudinary");
+let displayedProductsCount = 4;
 
 const product = {
   getAllProduct: async (req, res) => {
     try {
-      const products = await Product.find();
+      const products = await Product.find().limit(4);
+
       res.status(200).json(products);
     } catch (err) {
       res.status(500).json(err);
     }
   },
+
+  getMoreProducts: async (req, res) => {
+    try {
+      const additionalProducts = await Product.find()
+        .skip(displayedProductsCount)
+        .limit(4);
+
+      const initialProducts = await Product.find().limit(
+        displayedProductsCount
+      );
+
+      const allProducts = [...initialProducts, ...additionalProducts];
+
+      displayedProductsCount += additionalProducts.length;
+
+      const hasMoreProducts = additionalProducts.length > 0;
+
+      res.status(200).json({ products: allProducts, hasMoreProducts });
+    } catch (err) {
+      res.status(500).json(err);
+    }
+  },
+
   getProductById: async (req, res) => {
     const productId = req.params.id;
 
