@@ -17,6 +17,10 @@ router.post(
 router.get("/api/products", purchaseProductController.getAllProductsByOrder);
 
 router.get("/orders/products", purchaseProductController.getAllProductToOrder);
+router.get(
+  "/orders/products/more-products",
+  purchaseProductController.getMoreProductsToOrder
+);
 
 router.delete(
   "/products/:productId",

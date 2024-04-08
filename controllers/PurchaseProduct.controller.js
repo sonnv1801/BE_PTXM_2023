@@ -1,8 +1,9 @@
-const ProductSupplier = require('../models/ProductSupplier');
-const Order = require('../models/Order');
-const PurchaseHistory = require('../models/PurchaseHistory');
-const Customer = require('../models/User');
-const cloudinary = require('../utils/cloudinary');
+const ProductSupplier = require("../models/ProductSupplier");
+const Order = require("../models/Order");
+const PurchaseHistory = require("../models/PurchaseHistory");
+const Customer = require("../models/User");
+const cloudinary = require("../utils/cloudinary");
+let displayedProductsCount = 4;
 
 const purchaseProductController = {
   purchaseProduct: async (req, res) => {
@@ -38,7 +39,7 @@ const purchaseProductController = {
             }
 
             const productPrice =
-              purchaseType === 'quick'
+              purchaseType === "quick"
                 ? productSupplier.wholesalePriceQuick
                 : productSupplier.wholesalePrice;
             const productProfit = productSupplier.retailPrice - productPrice;
@@ -52,7 +53,7 @@ const purchaseProductController = {
               productCode: productCode,
               quantityOrdered: quantity,
               quantityDelivered: 0,
-              deliveryStatus: 'pending',
+              deliveryStatus: "pending",
               productPrice: productPrice,
               totalPrice: productTotalPrice,
               productProfit: productProfit,
@@ -66,7 +67,7 @@ const purchaseProductController = {
               retailPrice: productSupplier.retailPrice,
               wholesalePrice: productSupplier.wholesalePrice,
               wholesalePriceQuick: productSupplier.wholesalePriceQuick,
-              fastDelivery: purchaseType === 'quick',
+              fastDelivery: purchaseType === "quick",
             };
           })
         ),
@@ -119,7 +120,7 @@ const purchaseProductController = {
           );
           orderProduct.quantityDelivered += quantityToDeliver;
           if (orderProduct.quantityDelivered >= orderProduct.quantityOrdered) {
-            orderProduct.deliveryStatus = 'completed';
+            orderProduct.deliveryStatus = "completed";
           }
 
           remainingQuantity -= quantityToDeliver;
@@ -143,7 +144,7 @@ const purchaseProductController = {
       await order.save();
 
       res.json({
-        message: 'Đơn đặt hàng đã được xử lý.',
+        message: "Đơn đặt hàng đã được xử lý.",
         totalOrderQuantity: totalOrderQuantity,
         totalOrderPrice: totalOrderPrice,
         totalOrderProfit: totalOrderProfit,
@@ -161,13 +162,13 @@ const purchaseProductController = {
       const order = await Order.find({ customerId: user });
 
       if (!order) {
-        return res.status(404).json({ error: 'Không tìm thấy' });
+        return res.status(404).json({ error: "Không tìm thấy" });
       } else {
         return res.json(order);
       }
     } catch (error) {
-      console.error('Lỗi truy vấn MongoDB:', error);
-      return res.status(500).json({ error: 'Lỗi truy vấn dữ liệu' });
+      console.error("Lỗi truy vấn MongoDB:", error);
+      return res.status(500).json({ error: "Lỗi truy vấn dữ liệu" });
     }
   },
   getAllOrder: async (req, res) => {
@@ -181,7 +182,7 @@ const purchaseProductController = {
   getProductsByType: async (req, res) => {
     try {
       const type = req.params.type;
-      const orders = await Order.find({ 'products.type': type }).exec();
+      const orders = await Order.find({ "products.type": type }).exec();
       const products = orders.reduce((acc, order) => {
         const matchingProducts = order.products.filter(
           (product) => product.type === type
@@ -191,8 +192,8 @@ const purchaseProductController = {
 
       res.json(products);
     } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error("Error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -202,10 +203,10 @@ const purchaseProductController = {
     try {
       const productId = req.params.productId;
 
-      const order = await Order.findOne({ 'products._id': productId }).exec();
+      const order = await Order.findOne({ "products._id": productId }).exec();
 
       if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
+        return res.status(404).json({ error: "Order not found" });
       }
 
       const product = order.products.find(
@@ -213,13 +214,13 @@ const purchaseProductController = {
       );
 
       if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
+        return res.status(404).json({ error: "Product not found" });
       }
 
       res.json(product);
     } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error("Error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   },
   purchaseProductQuantity: async (req, res) => {
@@ -228,9 +229,9 @@ const purchaseProductController = {
       const quantity = req.body.quantity;
 
       // Tìm sản phẩm trong cơ sở dữ liệu
-      const order = await Order.findOne({ 'products._id': productId });
+      const order = await Order.findOne({ "products._id": productId });
       if (!order) {
-        return res.status(404).json({ error: 'Product not found' });
+        return res.status(404).json({ error: "Product not found" });
       }
 
       // Tìm sản phẩm cần mua
@@ -238,17 +239,17 @@ const purchaseProductController = {
         (p) => p._id.toString() === productId
       );
       if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
+        return res.status(404).json({ error: "Product not found" });
       }
 
       // Kiểm tra số lượng mua không vượt quá số lượng có sẵn
       if (quantity > product.quantityDelivered) {
-        return res.status(400).json({ error: 'Invalid quantity' });
+        return res.status(400).json({ error: "Invalid quantity" });
       }
 
       // Kiểm tra nếu quantityPurchased đã đạt đến quantityDelivered
       if (product.quantityPurchased === product.quantityDelivered) {
-        return res.status(400).json({ error: 'Product cannot be purchased' });
+        return res.status(400).json({ error: "Product cannot be purchased" });
       }
 
       // Tính số lượng còn lại có thể mua
@@ -257,7 +258,7 @@ const purchaseProductController = {
 
       // Kiểm tra số lượng mua không vượt quá số lượng còn lại có thể mua
       if (quantity > remainingQuantity) {
-        return res.status(400).json({ error: 'Invalid quantity' });
+        return res.status(400).json({ error: "Invalid quantity" });
       }
 
       // Tăng số lượng khách hàng đã mua
@@ -266,10 +267,10 @@ const purchaseProductController = {
       // Cập nhật cơ sở dữ liệu
       await order.save();
 
-      res.json({ message: 'Product purchased successfully' });
+      res.json({ message: "Product purchased successfully" });
     } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error("Error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   },
   getAllProductsByOrder: async (req, res) => {
@@ -291,43 +292,128 @@ const purchaseProductController = {
       res.json(allProducts);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
+      res.status(500).json({ error: "Internal Server Error" });
     }
   },
+
+  // getAllProductToOrder: async (req, res) => {
+  //   try {
+  //     // Tìm tất cả các đơn hàng
+  //     const orders = await Order.find().limit(4);
+
+  //     let allProducts = [];
+
+  //     // Lặp qua các đơn hàng và thu thập danh sách sản phẩm
+  //     orders?.forEach((order) => {
+  //       allProducts = allProducts.concat(order.products);
+  //     });
+
+  //     // Trả về danh sách sản phẩm từ tất cả các đơn hàng
+  //     res.json(allProducts);
+  //   } catch (err) {
+  //     console.error(err);
+  //     res.status(500).json({ error: "Đã xảy ra lỗi server" });
+  //   }
+  // },
+
+  // getMoreProductsToOrder: async (req, res) => {
+  //   try {
+  //     const additionalProducts = await Order.find()
+  //       .skip(displayedProductsCount)
+  //       .limit(1);
+
+  //     const initialProducts = await Order.find().limit(displayedProductsCount);
+
+  //     const allProducts = [...initialProducts, ...additionalProducts];
+
+  //     displayedProductsCount += additionalProducts.length;
+
+  //     const hasMoreProducts = additionalProducts.length > 0;
+
+  //     res.status(200).json({ products: allProducts, hasMoreProducts });
+  //   } catch (err) {
+  //     res.status(500).json(err);
+  //   }
+  // },
+
+  // getAllProductToOrder: async (req, res) => {
+  //   try {
+  //     // Tìm tất cả các đơn hàng
+  //     const orders = await Order.find();
+
+  //     let allProducts = [];
+
+  //     // Lặp qua các đơn hàng và thu thập danh sách sản phẩm
+  //     orders?.forEach((order) => {
+  //       allProducts = allProducts.concat(order.products);
+  //     });
+
+  //     // Trả về danh sách sản phẩm từ tất cả các đơn hàng
+  //     res.json(allProducts);
+  //   } catch (err) {
+  //     console.error(err);
+  //     res.status(500).json({ error: "Đã xảy ra lỗi server" });
+  //   }
+  // },
 
   getAllProductToOrder: async (req, res) => {
     try {
-      // Tìm tất cả các đơn hàng
       const orders = await Order.find();
 
-      let allProducts = [];
+      // Số lượng sản phẩm trên mỗi trang
+      const itemsPerPage = 4;
 
-      // Lặp qua các đơn hàng và thu thập danh sách sản phẩm
-      orders?.forEach((order) => {
-        allProducts = allProducts.concat(order.products);
-      });
+      // Lấy trang hiện tại từ query params hoặc mặc định là 1
+      const currentPage = parseInt(req.query.page) || 1;
 
-      // Trả về danh sách sản phẩm từ tất cả các đơn hàng
-      res.json(allProducts);
+      // Tính vị trí bắt đầu và kết thúc của danh sách sản phẩm
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = currentPage * itemsPerPage;
+
+      // Lấy danh sách sản phẩm cho trang hiện tại
+      const products = orders.flatMap((order) => order.products);
+      const paginatedProducts = products.slice(startIndex, endIndex);
+
+      // Trả về danh sách sản phẩm cho trang hiện tại
+      res.json(paginatedProducts);
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Đã xảy ra lỗi server' });
+      res.status(500).json({ error: "Đã xảy ra lỗi server" });
     }
   },
+
+  getMoreProductsToOrder: async (req, res) => {
+    try {
+      const additionalProducts = await Order.find()
+        .skip(displayedProductsCount)
+        .limit(1);
+      const initialProducts = await Order.find().limit(displayedProductsCount);
+      const allProducts = [...initialProducts, ...additionalProducts];
+
+      displayedProductsCount += additionalProducts.length;
+
+      const hasMoreProducts = additionalProducts.length > 0;
+
+      res.status(200).json({ products: allProducts, hasMoreProducts });
+    } catch (err) {
+      res.status(500).json(err);
+    }
+  },
+
   deleteProductToOrder: async (req, res) => {
     try {
       const productId = req.params.productId; // Lấy productId từ request parameters
 
       // Tìm và cập nhật các đơn hàng có chứa sản phẩm cần xóa
       const updateResult = await Order.updateMany(
-        { 'products._id': productId },
+        { "products._id": productId },
         { $pull: { products: { _id: productId } } }
       );
 
       if (updateResult.nModified === 0) {
         return res
           .status(404)
-          .json({ error: 'Không tìm thấy sản phẩm trong hệ thống đơn hàng.' });
+          .json({ error: "Không tìm thấy sản phẩm trong hệ thống đơn hàng." });
       }
 
       // Xóa các đơn hàng không còn sản phẩm
@@ -335,10 +421,10 @@ const purchaseProductController = {
 
       return res
         .status(200)
-        .json({ message: 'Đã xóa sản phẩm từ toàn bộ hệ thống đơn hàng.' });
+        .json({ message: "Đã xóa sản phẩm từ toàn bộ hệ thống đơn hàng." });
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ error: 'Đã xảy ra lỗi server.' });
+      return res.status(500).json({ error: "Đã xảy ra lỗi server." });
     }
   },
   getAllProductToOrderById: async (req, res) => {
@@ -346,12 +432,12 @@ const purchaseProductController = {
       const productId = req.params.productId; // Lấy productId từ request parameters
 
       // Tìm sản phẩm trong toàn bộ hệ thống đơn hàng
-      const order = await Order.findOne({ 'products._id': productId });
+      const order = await Order.findOne({ "products._id": productId });
 
       if (!order) {
         return res
           .status(404)
-          .json({ error: 'Không tìm thấy sản phẩm trong hệ thống đơn hàng.' });
+          .json({ error: "Không tìm thấy sản phẩm trong hệ thống đơn hàng." });
       }
 
       const product = order.products.find(
@@ -361,13 +447,13 @@ const purchaseProductController = {
       if (!product) {
         return res
           .status(404)
-          .json({ error: 'Không tìm thấy sản phẩm trong hệ thống đơn hàng.' });
+          .json({ error: "Không tìm thấy sản phẩm trong hệ thống đơn hàng." });
       }
 
       return res.status(200).json(product);
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ error: 'Đã xảy ra lỗi server.' });
+      return res.status(500).json({ error: "Đã xảy ra lỗi server." });
     }
   },
   updateProductToOrderById: async (req, res) => {
@@ -379,13 +465,13 @@ const purchaseProductController = {
       if (req.file) {
         // Lấy URL của hình ảnh từ Cloudinary
         const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: 'QUANLYPHUTUNG',
+          folder: "QUANLYPHUTUNG",
         });
         updatedFields.image = result.secure_url;
       }
 
       // Lấy thông tin sản phẩm hiện tại từ database
-      const order = await Order.findOne({ 'products._id': productId });
+      const order = await Order.findOne({ "products._id": productId });
 
       // Tìm sản phẩm cần update trong danh sách sản phẩm của đơn hàng
       const productToUpdate = order.products.find(
@@ -420,10 +506,10 @@ const purchaseProductController = {
 
       return res
         .status(200)
-        .json({ message: 'Đã cập nhật thông tin sản phẩm.' });
+        .json({ message: "Đã cập nhật thông tin sản phẩm." });
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ error: 'Đã xảy ra lỗi server.' });
+      return res.status(500).json({ error: "Đã xảy ra lỗi server." });
     }
   },
 };
