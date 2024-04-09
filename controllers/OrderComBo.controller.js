@@ -1,4 +1,4 @@
-const { OrderCombo } = require('../models/OrderComBo');
+const { OrderCombo } = require("../models/OrderComBo");
 
 const orderComboController = {
   createCombo: async (req, res) => {
@@ -15,7 +15,7 @@ const orderComboController = {
       res.status(201).json(savedOrder);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'Failed to create order' });
+      res.status(500).json({ error: "Failed to create order" });
     }
   },
 
@@ -26,8 +26,8 @@ const orderComboController = {
       const orders = await OrderCombo.find({ customerId });
       res.json(orders);
     } catch (error) {
-      console.error('Error fetching orders:', error);
-      res.status(500).json({ message: 'Failed to fetch orders' });
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders" });
     }
   },
   getAllOrder: async (req, res) => {
@@ -50,14 +50,14 @@ const orderComboController = {
       if (orders.length === 0) {
         return res
           .status(404)
-          .json({ message: 'Không tìm thấy đơn hàng cho khách hàng này.' });
+          .json({ message: "Không tìm thấy đơn hàng cho khách hàng này." });
       }
 
       res.status(200).json(orders);
     } catch (error) {
       res
         .status(500)
-        .json({ message: 'Đã xảy ra lỗi khi truy vấn cơ sở dữ liệu.' });
+        .json({ message: "Đã xảy ra lỗi khi truy vấn cơ sở dữ liệu." });
     }
   },
   deleteOrderComboById: async (req, res) => {
@@ -69,13 +69,13 @@ const orderComboController = {
       if (!deletedOrderCombo) {
         return res
           .status(404)
-          .json({ message: 'Không Tìm Thấy Order Theo ID Này' });
+          .json({ message: "Không Tìm Thấy Order Theo ID Này" });
       }
 
-      return res.status(200).json({ message: 'Xóa Order Thành Công!' });
+      return res.status(200).json({ message: "Xóa Order Thành Công!" });
     } catch (error) {
       return res.status(500).json({
-        message: 'Xóa Order Không Thành Công!',
+        message: "Xóa Order Không Thành Công!",
         error: error.message,
       });
     }
@@ -87,14 +87,14 @@ const orderComboController = {
       if (!order) {
         return res
           .status(404)
-          .json({ error: 'Không Tìm Thấy Thông Tin Theo Id ' });
+          .json({ error: "Không Tìm Thấy Thông Tin Theo Id " });
       }
 
       // Return the order details
       return res.status(200).json(order);
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ error: 'Server error.' });
+      return res.status(500).json({ error: "Server error." });
     }
   },
 };

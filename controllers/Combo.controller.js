@@ -3,10 +3,53 @@ const cloudinary = require("../utils/cloudinary");
 comboController = {
   getAllCombo: async (req, res) => {
     try {
-      const combo = await Combo.find();
-      res.status(200).json(combo);
+      const combos = await Combo.find();
+
+      // Số lượng sản phẩm trên mỗi trang
+      const itemsPerPage = 4;
+
+      // Lấy trang hiện tại từ query params hoặc mặc định là 1
+      const currentPage = parseInt(req.query.page) || 1;
+
+      // Tính vị trí bắt đầu và kết thúc của danh sách sản phẩm
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = currentPage * itemsPerPage;
+
+      // Lấy danh sách sản phẩm cho trang hiện tại
+      const products = combos.flatMap((combo) => combo);
+      const paginatedProducts = products.slice(startIndex, endIndex);
+
+      // Trả về danh sách sản phẩm cho trang hiện tại
+      res.json(paginatedProducts);
     } catch (err) {
-      res.status(500).json(err);
+      console.error(err);
+      res.status(500).json({ error: "Đã xảy ra lỗi server" });
+    }
+  },
+
+  getAllProductToOrder: async (req, res) => {
+    try {
+      const orders = await Order.find();
+
+      // Số lượng sản phẩm trên mỗi trang
+      const itemsPerPage = 4;
+
+      // Lấy trang hiện tại từ query params hoặc mặc định là 1
+      const currentPage = parseInt(req.query.page) || 1;
+
+      // Tính vị trí bắt đầu và kết thúc của danh sách sản phẩm
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = currentPage * itemsPerPage;
+
+      // Lấy danh sách sản phẩm cho trang hiện tại
+      const products = orders.flatMap((order) => order.products);
+      const paginatedProducts = products.slice(startIndex, endIndex);
+
+      // Trả về danh sách sản phẩm cho trang hiện tại
+      res.json(paginatedProducts);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Đã xảy ra lỗi server" });
     }
   },
   getComBoById: async (req, res) => {
